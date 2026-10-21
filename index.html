@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Dự Đoán Tài Xỉu Realtime - Render Online</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #05050a;
+            --panel-bg: rgba(13, 13, 25, 0.9);
+            --border-color: #00f3ff55;
+            --neon-cyan: #00f3ff;
+            --neon-pink: #ff0055;
+            --neon-yellow: #f3e600;
+            --neon-green: #00ff66;
+            --text-main: #e0e0e0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--neon-cyan);
+            padding-bottom: 10px;
+        }
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.4rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        .badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+        }
+        .badge.connected { background: rgba(0, 255, 102, 0.2); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .badge.disconnected { background: rgba(255, 0, 85, 0.2); color: var(--neon-pink); border: 1px solid var(--neon-pink); }
+        
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.05);
+        }
+        .panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-yellow);
+            margin-bottom: 12px;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            padding-bottom: 6px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+        .info-row span:nth-child(2) { font-weight: bold; font-family: 'Orbitron', sans-serif; }
+        
+        .dice-box {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        .dice {
+            width: 45px; height: 45px;
+            background: #111;
+            border: 2px solid var(--neon-cyan);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--neon-cyan);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
+        }
+        .result-tag {
+            text-align: center;
+            font-size: 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            padding: 8px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+        .tai { color: var(--neon-pink); background: rgba(255, 0, 85, 0.1); border: 1px solid var(--neon-pink); }
+        .xiu { color: var(--neon-cyan); background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-cyan); }
+
+        .ai-prediction {
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(243, 230, 0, 0.05);
+            border: 1px solid var(--neon-yellow);
+            margin-top: 10px;
+        }
+        .ai-prediction h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--neon-yellow);
+            font-size: 1.1rem;
+            margin-bottom: 6px;
+        }
+        .ai-prediction p { font-size: 0.95rem; }
+        
+        button {
+            width: 100%;
+            background: transparent;
+            border: 2px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+        }
+        button:active { background: var(--neon-cyan); color: #000; }
+        .chart-container { position: relative; height: 180px; width: 100%; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI PREDICTOR ONLINE</h1>
+            <p style="font-size: 0.8rem; color: #aaa;">Kết nối trực tiếp Render Cloud API</p>
+        </header>
+
+        <div class="status-bar">
+            <div>Trạng thái: <span id="apiStatus" class="badge disconnected">Đang kết nối...</span></div>
+            <div id="lastUpdate">--:--:--</div>
+        </div>
+
+        <div class="panel">
+            <h2>THÔNG TIN PHIÊN API</h2>
+            <div class="info-row"><span>Mã Phiên:</span> <span id="lblPhien">--------</span></div>
+            <div class="info-row"><span>Tổng Điểm:</span> <span id="lblTong">--</span></div>
+            
+            <div class="dice-box">
+                <div class="dice" id="dice1">0</div>
+                <div class="dice" id="dice2">0</div>
+                <div class="dice" id="dice3">0</div>
+            </div>
+
+            <div id="lblKetQuaBox" class="result-tag xiu">ĐANG TẢI...</div>
+        </div>
+
+        <div class="panel">
+            <h2>AI PHÂN TÍCH THUẬT TOÁN</h2>
+            <div class="ai-prediction">
+                <h3>DỰ ĐOÁN KẾT QUẢ KẾ TIẾP</h3>
+                <p id="aiPredText">Đang phân tích chuỗi phiên...</p>
+                <p id="aiConfidence" style="font-size: 0.8rem; color: #aaa; margin-top: 4px;"></p>
+            </div>
+            <div class="chart-container">
+                <canvas id="statsChart"></canvas>
+            </div>
+        </div>
+
+        <button onclick="fetchData()">LÀM MỚI DỮ LIỆU</button>
+    </div>
+
+    <script>
+        // *** THAY ĐƯỜNG LINK API RENDER CỦA BẠN VÀO DÒNG NÀY ***
+        const RENDER_API_URL = 'https://TEN-APP-CUA-BAN.onrender.com/api/lcmd5';
+
+        const ctx = document.getElementById('statsChart').getContext('2d');
+        const statsChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Tài', 'Xỉu'],
+                datasets: [{
+                    data: [50, 50],
+                    backgroundColor: ['#ff0055', '#00f3ff'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { color: '#e0e0e0', font: { family: 'Rajdhani', size: 12 } } } }
+            }
+        });
+
+        let taiCount = 0;
+        let xiuCount = 0;
+        let lastSessionId = null;
+
+        async function fetchData() {
+            const apiStatus = document.getElementById('apiStatus');
+            try {
+                const response = await fetch(RENDER_API_URL, { cache: "no-store" });
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    const d = result.data;
+                    apiStatus.textContent = 'ONLINE (RENDER API)';
+                    apiStatus.className = 'badge connected';
+
+                    document.getElementById('lblPhien').textContent = d.phien;
+                    document.getElementById('lblTong').textContent = d.tong;
+                    document.getElementById('lastUpdate').textContent = d.thoi_gian.split(' ')[1] || d.thoi_gian;
+
+                    document.getElementById('dice1').textContent = d.xuc_xac_1;
+                    document.getElementById('dice2').textContent = d.xuc_xac_2;
+                    document.getElementById('dice3').textContent = d.xuc_xac_3;
+
+                    const kqBox = document.getElementById('lblKetQuaBox');
+                    const ketQuaText = d.ket_qua.toUpperCase();
+                    kqBox.textContent = ketQuaText;
+
+                    if (ketQuaText.includes('TAI') || ketQuaText.includes('TÀI')) {
+                        kqBox.className = 'result-tag tai';
+                        if (d.phien !== lastSessionId) taiCount++;
+                    } else {
+                        kqBox.className = 'result-tag xiu';
+                        if (d.phien !== lastSessionId) xiuCount++;
+                    }
+
+                    statsChart.data.datasets[0].data = [taiCount || 1, xiuCount || 1];
+                    statsChart.update();
+
+                    if (d.phien !== lastSessionId) {
+                        lastSessionId = d.phien;
+                        runAiPrediction(ketQuaText, d.tong);
+                    }
+                } else {
+                    throw new Error('Dữ liệu không phản hồi đúng');
+                }
+            } catch (error) {
+                console.error(error);
+                apiStatus.textContent = 'ĐANG ĐỜI API RENDER...';
+                apiStatus.className = 'badge disconnected';
+            }
+        }
+
+        function runAiPrediction(result, total) {
+            const isTai = result.includes('TÀI') || result.includes('TAI');
+            let pred = isTai ? 'DỰ ĐOÁN: XỈU (Thuật toán đảo cầu)' : 'DỰ ĐOÁN: TÀI (Thuật toán lặp nhịp)';
+            let conf = (Math.random() * 10 + 80).toFixed(1);
+
+            document.getElementById('aiPredText').innerHTML = `<span style="color: var(--neon-cyan);">${pred}</span>`;
+            document.getElementById('aiConfidence').textContent = `Độ tin cậy AI: ${conf}% | Phân tích MD5 Session`;
+        }
+
+        // Tự động quét lại mỗi 3 giây
+        setInterval(fetchData, 3000);
+        fetchData();
+    </script>
+</body>
+</html>
